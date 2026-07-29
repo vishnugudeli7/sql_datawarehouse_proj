@@ -82,3 +82,61 @@ where prd_cost IS NULL;
 
 SELECT * from bronze.crm_prd_info
 where prd_start_dt < prd_end_dt;
+
+
+
+
+
+
+-- test for crm_sales_details
+
+
+
+
+-- Checking for invalid dates for sls_order_dt
+SELECT
+sls_order_dt
+from bronze.crm_sales_details
+where sls_order_dt <= 0 or len(sls_order_dt) != 8 or sls_order_dt is null
+
+-- Checking for invalid dates for sls_ship_dt
+SELECT
+sls_ship_dt
+from bronze.crm_sales_details
+where sls_ship_dt <= 0 or len(sls_ship_dt) != 8 or sls_ship_dt is null
+-- Lets check for due_dt
+SELECT
+sls_due_dt
+from bronze.crm_sales_details
+where sls_due_dt <= 0 or len(sls_due_dt) != 8 or sls_due_dt is null;
+
+SELECT * from bronze.crm_sales_details
+where sls_sales is null or sls_sales !=  sls_quantity * sls_price  ;
+
+
+SELECT * from bronze.crm_sales_details
+where sls_price is null or sls_price !=  sls_sales / sls_quantity  ;
+
+SELECT * from bronze.crm_sales_details
+where sls_quantity is null or sls_quantity !=  sls_sales / sls_price  ;
+
+
+
+
+
+
+
+-- tests for erp_cust_az12
+
+
+
+-- Lets get the diff types of values in gender
+select distinct gen
+from bronze.erp_cust_az12;
+
+
+-- getting invalud bdates
+SELECT DISTINCT
+bdate
+from bronze.erp_cust_az12
+where bdate < '1926-01-01' or bdate > getdate()
