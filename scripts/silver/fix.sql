@@ -61,3 +61,122 @@ cast(prd_start_dt as date) as prd_start_dt,
 CAST(lead(prd_start_dt) OVER(PARTITION BY prd_key order by prd_start_dt) - 1 as DATE)
 AS PRD_END_dt
 FROM bronze.crm_prd_info;
+
+
+
+
+
+
+
+INSERT INTO silver.crm_sales_details(
+sls_ord_num,
+sls_prd_key,
+sls_cust_id,
+sls_order_dt,
+sls_ship_dt,
+sls_due_dt,
+sls_sales,
+sls_quantity,
+sls_price
+)
+SELECT 
+sls_ord_num,
+sls_prd_key,
+sls_cust_id,
+CASE
+ WHEN sls_order_dt = 0  OR len(sls_order_dt) != 8 then NULL
+ ELSE CAST(CAST(sls_order_dt as varchar) as date)
+end as sls_order_dt,
+CASE
+ WHEN sls_ship_dt = 0  OR len(sls_ship_dt) != 8 then NULL
+ ELSE CAST(CAST(sls_ship_dt as varchar) as date)
+end as sls_ship_dt,
+CASE
+ WHEN sls_due_dt = 0  OR len(sls_due_dt) != 8 then NULL
+ ELSE CAST(CAST(sls_due_dt as varchar) as date)
+end as sls_due_dt,
+CASE
+ when sls_sales IS NULL OR sls_sales <= 0 or sls_sales != sls_quantity * ABS(sls_price)
+ then sls_quantity * ABS(sls_price)
+ else sls_sales
+END AS sls_sales,
+sls_quantity,
+CASE
+ when sls_price IS NULL OR sls_price <= 0 
+ then sls_sales / NULLIF(sls_quantity,0)
+ else sls_price
+END AS sls_price
+from bronze.crm_sales_details;
+
+
+
+
+
+
+-- insert the data into erp_cust_az12
+
+
+
+
+
+
+INSERT INTO silver.erp_cust_az12(
+cid,
+bdate,
+gen
+)
+SELECT
+CASE
+ WHEN cid like 'NAS%' THEN SUBSTRING(cid,4,len(cid))
+ else cid
+ end as cid,
+Case
+  when bdate > getdate() or bdate < '1926-01-01' then null
+  else bdate
+end as bdate,
+case
+ when upper(trim(gen)) in ('F','FEMALE') then 'Female'
+ when upper(trim(gen)) in ('M','MALE') then 'Male'
+ else 'n/a'
+end as gen
+from bronze.erp_cust_az12
+
+
+
+
+
+
+
+-- fix erp_loc_a101
+
+INSERT into silver.erp_loc_a101(
+cid,
+cntry)
+SELECT 
+REPLACE(cid,'-','') as cid,
+CASE
+ when trim(cntry) = 'DE' then 'Germany'
+ when trim(cntry) in ('US','USA') THEN 'United State'
+ when trim(cntry) = '' or cntry is NULL THEN 'n/a'
+ else trim(cntry)
+end as cntry
+from bronze.erp_loc_a101;
+
+
+
+
+
+
+
+SELECT * FROM silver.erp_px_cat_g1v2;
+INSERT INTO silver.erp_px_cat_g1v2(
+id,
+cat,
+subcat,
+maintenance)
+SELECT
+id,
+cat,
+subcat,
+maintenance
+from bronze.erp_px_cat_g1v2;
